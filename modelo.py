@@ -8,14 +8,10 @@ Estimating request order waiting times based on finished ones.
 """
 
 # Importing all the necessary libraries
-# import matplotlib.pyplot as plt # Plotting
-# import seaborn as sns # Fancy visualization capabilities
-
 import numpy as np # Numerical array manipulation
 import pymc3 as pm
-
-import theano.tensor as tt
 import functionES as es
+import theano.tensor as tt
 
 #  Loading data
 datos = es.importing_data('OTs_detallado.sql')
