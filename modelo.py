@@ -8,12 +8,12 @@ Estimating request order waiting times based on finished ones.
 """
 
 # Importing all the necessary libraries
-import matplotlib.pyplot as plt # Plotting
-import seaborn as sns # Fancy visualization capabilities
+# import matplotlib.pyplot as plt # Plotting
+# import seaborn as sns # Fancy visualization capabilities
 
 import numpy as np # Numerical array manipulation
 import pymc3 as pm
-import pm4py
+
 import theano.tensor as tt
 import functionES as es
 
@@ -22,16 +22,6 @@ datos = es.importing_data('OTs_detallado.sql')
 
 # Filtering data to keep the request orders finished
 datosObservados = es.process_filter(datos)# Advanced process mining filtering
-
-# Boxplot of time distribution
-# sns.set()
-# sns.boxplot(y = datosObservados.TiempoAtencion, color = '#E60018')
-# plt.xlabel('OTs')
-# plt.ylabel('Tiempo de atención (horas)')
-# plt.ylim([0,60])
-# plt.show()
-
-# Bar plot whose height is the time elapsed between the begin and end of the OT
 
 # ----------------------------------------------------------------------------
 # **************************Monte Carlo Markov Chain**************************
