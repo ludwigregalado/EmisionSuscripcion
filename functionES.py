@@ -14,11 +14,11 @@ from pm4py.objects.conversion.log import converter as log_converter
 from pm4py.algo.filtering.log.start_activities import start_activities_filter
 from pm4py.algo.filtering.log.end_activities import end_activities_filter
 
-def importing_data(file, start = 30, end = 15):
+def importing_data(file):
     
     # Generating a time frame to extract information
-    fechaInicio = (datetime.now()-timedelta(days = start)).strftime('%Y-%m-%d %H:%M:%S')
-    fechaFin = (datetime.now()-timedelta(days = end)).strftime('%Y-%m-%d %H:%M:%S')
+#     fechaInicio = (datetime.now()-timedelta(days = start)).strftime('%Y-%m-%d %H:%M:%S')
+#     fechaFin = (datetime.now()-timedelta(days = end)).strftime('%Y-%m-%d %H:%M:%S')
     
     # Reading database connection information from files
     server_file = open('server.sql','r')
@@ -41,9 +41,8 @@ def importing_data(file, start = 30, end = 15):
                          ';DATABASE='+database+
                          ';TRUSTED_CONNECTION=TRUE')
     # Query from DWH
-    datos = pd.read_sql_query(query+
-                              "\'"+fechaInicio+"\'"+
-                              "\n AND TiempoAlta > "+"\'"+fechaFin+"\'", DWH)
+    datos = pd.read_sql_query(query, DWH)
+#     datos['TiempoAtencion'] = round((datos.TiempoEstatus-datos.TiempoAltaOt).dt.total_seconds()/3600)
     
     return(datos)
 
@@ -74,7 +73,8 @@ def process_filter(dataframe):
     # Filtering data
     filtered_log = start_activities_filter.apply(event_log, ["Pendiente",
                                                              "Rechazada"])
-    filtered_log = end_activities_filter.apply(filtered_log, ["Emitida"])
+    filtered_log = end_activities_filter.apply(filtered_log, ["Emitida",
+                                                             "Rechazada"])
     
     # Converting log to dataframe
     df = log_converter.apply(filtered_log, variant=log_converter.Variants.TO_DATA_FRAME)
@@ -85,7 +85,6 @@ def process_filter(dataframe):
 
     # Grouping by Id to calculate total elapsed time
     df = df.groupby(['IdOT'], as_index = False).agg([max, min])
-    df['TiempoAtencion'] = (df['TiempoAlta']['max'] - df['TiempoAlta']['min']).dt.total_seconds()/3600
-    
+    df['TiempoAtencion'] = round((df['TiempoAlta']['max'] - df['TiempoAlta']['min']).dt.total_seconds()/3600)
 
     return(df)
