@@ -8,6 +8,7 @@ Created on Fri Apr  9 08:52:52 2021
 """
 import pandas as pd # Dataframe manipulation
 import pyodbc # Database connection
+import pymc3 as pm
 from datetime import timedelta, datetime # Time and date manipulation
 from pm4py.objects.log.util import dataframe_utils
 from pm4py.objects.conversion.log import converter as log_converter
@@ -15,11 +16,7 @@ from pm4py.algo.filtering.log.start_activities import start_activities_filter
 from pm4py.algo.filtering.log.end_activities import end_activities_filter
 
 def importing_data(file):
-    
-    # Generating a time frame to extract information
-#     fechaInicio = (datetime.now()-timedelta(days = start)).strftime('%Y-%m-%d %H:%M:%S')
-#     fechaFin = (datetime.now()-timedelta(days = end)).strftime('%Y-%m-%d %H:%M:%S')
-    
+        
     # Reading database connection information from files
     server_file = open('server.sql','r')
     database_file = open('database.sql', 'r')
@@ -42,11 +39,14 @@ def importing_data(file):
                          ';TRUSTED_CONNECTION=TRUE')
     # Query from DWH
     datos = pd.read_sql_query(query, DWH)
-#     datos['TiempoAtencion'] = round((datos.TiempoEstatus-datos.TiempoAltaOt).dt.total_seconds()/3600)
     
     return(datos)
 
 def process_filter(dataframe):
+    """
+    Filter OTs that started with Pendiente/Rechazada and Finish with Emitida
+    using pm4py capabilities
+    """
     
     # This line assures that date column is well formatted
     log_df =  dataframe_utils.convert_timestamp_columns_in_df(dataframe)
@@ -88,3 +88,33 @@ def process_filter(dataframe):
     df['TiempoAtencion'] = round((df['TiempoAlta']['max'] - df['TiempoAlta']['min']).dt.total_seconds()/3600)
 
     return(df)
+
+def extract_lims(datos):# Extract the first and last update for each OT
+    maximos = datos.loc[:,'TiempoAlta']['max']
+    minimos = datos.loc[:,'TiempoAlta']['min']
+    
+    return(minimos, maximos)
+
+def MCMC(datosTiempo):
+    # Generating Model context for tiempoEmision
+    with pm.Model() as model:
+        # Emisión
+        alpha = 1.0/(datosTiempo).mean()
+        lambda_1 = pm.Exponential("lambda_1", alpha)
+
+    # Generating lambda
+    with model:
+        lambda_ = lambda_1
+
+    # Generating observation distributions
+    with model:
+        observation = pm.Poisson("obs", lambda_, observed = datosTiempo)
+
+    # Generating simulations
+    with model:
+        step = pm.Metropolis()
+        trace = pm.sample(1000, tune = 500, step = step, progressbar = True)
+
+#     lambda_1_samples= trace['lambda_1']
+    
+    return(model, trace)
